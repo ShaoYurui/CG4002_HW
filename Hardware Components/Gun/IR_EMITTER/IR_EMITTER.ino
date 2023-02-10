@@ -1,38 +1,58 @@
-/*
-MIT License
-Copyright 2021 Michael Schoeffler (https://www.mschoeffler.com)
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-/*
- * This is an example source code of a tutorial on how to do IR communication with the Arduino Uno. 
- * This program is for a sending Arduino Uno that sends an IR signal each second.
- */
-
-#include <IRremote.h> // >v3.0.0
+#include <IRremote.h> 
 
 #define BUTTON_PIN 2                                      
-#define PIN_SEND 3
-#define LED_PIN 4
+#define SEND_PIN 3
+#define BUZZER_PIN 4
 
-volatile byte ledState = LOW;
+#define PLAY1_IR_SIGNAL 0x69
+#define PLAY1_IR_ADDRES 0x1103
+#define BAUD_RATE 9600
 
 void setup()  
 {  
   pinMode(BUTTON_PIN, INPUT);
-  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), blinkLed, RISING);
-
-  IrSender.begin(PIN_SEND); // Initializes IR sender
+  pinMode(BUZZER_PIN, OUTPUT);
+  attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), button_isr, FALLING);
+  IrSender.begin(SEND_PIN); // Initializes IR sender
 }  
-                               
 void loop()  
 {  
-  IrSender.sendNEC(0x0102, 0x34, true, 0); // the address 0x0102 with the command 0x34 is sent 
-  delay(1000); // wait for one second
+
 }  
 
-void blinkLed() {
-  ledState = !ledState;
-  digitalWrite(LED_PIN, ledState);
+void disable_isr()
+{
+  EIMSK &= 0b00000010;
 }
+
+void enable_isr()
+{
+  EIFR = 0b00000001;
+  EIMSK |= 0b00000001;
+}
+
+void sound_space_gun()
+{
+  for(int i=200;i<900;i++)
+  {
+    digitalWrite(BUZZER_PIN, HIGH);
+    delayMicroseconds(i);
+    digitalWrite(BUZZER_PIN, LOW);
+    delayMicroseconds(i);
+  }
+}
+
+void button_isr()
+{
+  disable_isr();
+  shoot_IR();
+  sound_space_gun();
+  enable_isr();
+}
+
+void shoot_IR()
+{
+  IrSender.sendNEC(PLAY1_IR_ADDRES, PLAY1_IR_SIGNAL, true);
+}
+
+
