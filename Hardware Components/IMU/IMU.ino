@@ -3,10 +3,10 @@
 ////////////////////////////// IMU PRE_COMPILE DEFINES //////////////////////////////////////
 #define MPU_ADDR              0x68
 #define SEND_FREQ             50 // Hz
-#define LOOP_TIME             (1000/SEND_FREQ) // ms
+#define LOOP_TIME             ((1.0f / SEND_FREQ) * 1000) // ms
 /////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// IMU  PREPROCESS DEFINES///////////////////////////////////////
-#define CALIBRATE_SAMPLE_NUM  200
+#define CALIBRATE_SAMPLE_NUM  1000
 #define ACCE_SCALE_FACTOR     1000
 #define GYRO_SCALE_FACTOR     1000
 /////////////////////////////////////////////////////////////////////////////////////////////
@@ -15,14 +15,13 @@
 #define ACK_H                 'A'
 /////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////// IMU RAW DATA VARIABLES //////////////////////////////////////
-int16_t accelerometer_x, accelerometer_y, accelerometer_z; 
-int16_t gyro_x, gyro_y, gyro_z; 
-int16_t temperature; 
+int accelerometer_x, accelerometer_y, accelerometer_z; 
+int gyro_x, gyro_y, gyro_z; 
+int temperature; 
 /////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// IMU CALIBRATION VARIABLES ////////////////////////////////////
-int16_t accelerometer_x_cal, accelerometer_y_cal, accelerometer_z_cal; 
-int16_t gyro_x_cal, gyro_y_cal, gyro_z_cal; 
-bool done_IMU_calibration = false;
+long accelerometer_x_cal, accelerometer_y_cal, accelerometer_z_cal; 
+long gyro_x_cal, gyro_y_cal, gyro_z_cal; 
 /////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////// IMU PREPROCESS VARIABLES /////////////////////////////////////
 float accelerometer_x_processed, accelerometer_y_processed, accelerometer_z_processed; 
@@ -41,16 +40,16 @@ void loop()
   read_IMU_data();
   preprocess_IMU_data();
 
-  if(done_handshake())
-  {
-    Serial.print(accelerometer_x_processed);
+  if(1)
+  { 
+    Serial.print(accelerometer_x_processed); 
     Serial.print(accelerometer_y_processed); 
     Serial.print(accelerometer_z_processed); 
     Serial.print(gyro_x_processed); 
-    Serial.print(gyro_y_processed);
-    Serial.print(gyro_z_processed);
+    Serial.print(gyro_y_processed); 
+    Serial.print(gyro_z_processed); 
   }
-
+  
   delay(LOOP_TIME);
 }
 
@@ -83,7 +82,7 @@ void read_IMU_data()
 void calibrate_IMU()
 {
   reset_cal_bias();
-
+  delay(50);
   for(int i = 0; i < CALIBRATE_SAMPLE_NUM; i++)
   {
     if(i % 25 == 0) // blink LED to indicate calibration in process
@@ -92,25 +91,20 @@ void calibrate_IMU()
     }
 
     read_IMU_data();
-
     accelerometer_x_cal += accelerometer_x;
     accelerometer_y_cal += accelerometer_y;
     accelerometer_z_cal += accelerometer_z;
     gyro_x_cal += gyro_x;
     gyro_y_cal += gyro_y;
     gyro_z_cal += gyro_z; 
-
     delay(10);
   }
-
   accelerometer_x_cal /= CALIBRATE_SAMPLE_NUM;
   accelerometer_y_cal /= CALIBRATE_SAMPLE_NUM;
   accelerometer_z_cal /= CALIBRATE_SAMPLE_NUM;
   gyro_x_cal /= CALIBRATE_SAMPLE_NUM;
   gyro_y_cal /= CALIBRATE_SAMPLE_NUM;
   gyro_z_cal /= CALIBRATE_SAMPLE_NUM; 
-
-  done_IMU_calibration = true;
 }
 
 void reset_cal_bias()
@@ -125,12 +119,42 @@ void reset_cal_bias()
 
 void preprocess_IMU_data()
 {
-  accelerometer_x_processed = (accelerometer_x - accelerometer_x_cal) / ACCE_SCALE_FACTOR;
-  accelerometer_y_processed = (accelerometer_y - accelerometer_y_cal) / ACCE_SCALE_FACTOR;
-  accelerometer_z_processed = (accelerometer_z - accelerometer_z_cal) / ACCE_SCALE_FACTOR;
-  gyro_x_processed = (accelerometer_x - gyro_x_cal) / GYRO_SCALE_FACTOR;
-  gyro_y_processed = (accelerometer_y - gyro_y_cal) / GYRO_SCALE_FACTOR;
-  gyro_z_processed = (accelerometer_z - gyro_z_cal) / GYRO_SCALE_FACTOR;
+  accelerometer_x_processed = 1.000f * (accelerometer_x - accelerometer_x_cal) / ACCE_SCALE_FACTOR;
+  accelerometer_y_processed = 1.000f * (accelerometer_y - accelerometer_y_cal) / ACCE_SCALE_FACTOR;
+  accelerometer_z_processed = 1.000f * (accelerometer_z - accelerometer_z_cal) / ACCE_SCALE_FACTOR;
+  gyro_x_processed = 1.000f * (gyro_x - gyro_x_cal) / GYRO_SCALE_FACTOR;
+  gyro_y_processed = 1.000f * (gyro_y - gyro_y_cal) / GYRO_SCALE_FACTOR;
+  gyro_z_processed = 1.000f * (gyro_z - gyro_z_cal) / GYRO_SCALE_FACTOR;
+}
+
+void print_IMU_raw_data()
+{
+  Serial.print(accelerometer_x); Serial.print(" "); 
+  Serial.print(accelerometer_y); Serial.print(" "); 
+  Serial.print(accelerometer_z); Serial.print(" "); 
+  Serial.print(gyro_x); Serial.print(" "); 
+  Serial.print(gyro_y); Serial.print(" "); 
+  Serial.print(gyro_z); Serial.println(" "); 
+}
+
+void print_IMU_cal_data()
+{
+  Serial.print(accelerometer_x_cal); Serial.print(" "); 
+  Serial.print(accelerometer_y_cal); Serial.print(" "); 
+  Serial.print(accelerometer_z_cal); Serial.print(" "); 
+  Serial.print(gyro_x_cal); Serial.print(" "); 
+  Serial.print(gyro_y_cal); Serial.print(" "); 
+  Serial.print(gyro_z_cal); Serial.println(" "); 
+}
+
+void print_IMU_processed_data()
+{
+  Serial.print(accelerometer_x_processed); Serial.print(" "); 
+  Serial.print(accelerometer_y_processed); Serial.print(" "); 
+  Serial.print(accelerometer_z_processed); Serial.print(" "); 
+  Serial.print(gyro_x_processed); Serial.print(" "); 
+  Serial.print(gyro_y_processed); Serial.print(" "); 
+  Serial.print(gyro_z_processed); Serial.println(" "); 
 }
 
 bool done_handshake()
